@@ -11,13 +11,13 @@ type Book struct {
 	ID string `json:"id"`
 	Title string `json:"title"`
 	Author string `json:"author"`
-	Quality int `json:"quality"`
+	Quantity int `json:"quantity"`
 }
 
 var books = []Book{
-	Book{ID: "1", Title: "The Great Gatsby", Author: "F. Scott Fitzgerald", Quality: 5},
-	Book{ID: "2", Title: "To Kill a Mockingbird", Author: "Harper Lee", Quality: 4},
-	Book{ID: "3", Title: "1984", Author: "George Orwell", Quality: 3},
+	Book{ID: "1", Title: "The Great Gatsby", Author: "F. Scott Fitzgerald", Quantity: 5},
+	Book{ID: "2", Title: "To Kill a Mockingbird", Author: "Harper Lee", Quantity: 4},
+	Book{ID: "3", Title: "1984", Author: "George Orwell", Quantity: 3},
 }
 
 func getBooks(c *gin.Context) {
@@ -55,10 +55,43 @@ func getBookByID(id string) (*Book, error) {
 	return nil, errors.New("book not found")
 }
 
+func checkoutBook(c *gin.Context) {
+	id := c.Param("id")
+	book, err := getBookByID(id)
+
+	if err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
+		return
+	}
+
+	if book.Quantity == 0 {
+		c.JSON(http.StatusConflict, gin.H{"error": "book out of stock"})
+		return
+	}
+
+	book.Quantity -= 1
+	c.IndentedJSON(http.StatusOK, book)
+}
+
+func returnBook(c *gin.Context) {
+	id := c.Param("id")
+	book, err := getBookByID(id)
+
+	if err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
+		return
+	}
+
+	book.Quantity += 1
+	c.IndentedJSON(http.StatusOK, book)
+}
+
 func main(){
 	r := gin.Default()
 	r.GET("/books", getBooks)
 	r.POST("/books", createBook)
 	r.GET("/books/:id", bookById)
+	r.POST("/books/:id/checkout", checkoutBook)
+	r.POST("/books/:id/return", returnBook)
 	r.Run(":8080")
 }
